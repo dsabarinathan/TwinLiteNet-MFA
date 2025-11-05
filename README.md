@@ -79,6 +79,25 @@ python train.py --config config.yaml --model small
 python train.py --config config.yaml --epochs 200 --batch-size 32 --lr 0.001
 ```
 
+### Testing Trained Models
+
+```bash
+# Test with checkpoint
+python test.py --checkpoint checkpoints/checkpoint_best.pth --model nano
+
+# Test with custom dataset path
+python test.py --checkpoint model.pth --model small --data-root /path/to/bdd100k
+
+# Test with specific batch size
+python test.py --checkpoint model.pth --model nano --batch-size 8
+
+# Save results to file
+python test.py --checkpoint model.pth --model nano --save-results --output results.txt
+
+# Test on CPU
+python test.py --checkpoint model.pth --model nano --cpu
+```
+
 ### Resume Training
 
 ```bash
@@ -160,6 +179,54 @@ Combined loss with Focal Loss and Tversky Loss:
 - **mIoU**: Mean IoU across all classes
 - **Line Accuracy**: Average of sensitivity and specificity (for lane lines)
 
+## Evaluation Metrics
+
+The test script evaluates models on the following metrics:
+
+### Drivable Area Segmentation
+- **Pixel Accuracy**: Overall pixel-wise accuracy
+- **IoU**: Intersection over Union for positive class
+- **mIoU**: Mean IoU across all classes
+
+### Lane Line Detection
+- **Line Accuracy**: Average of sensitivity and specificity (for lane lines)
+- **IoU**: Intersection over Union for positive class
+- **mIoU**: Mean IoU across all classes
+
+### Performance
+- **Inference Time**: Mean and standard deviation in milliseconds
+- **FPS**: Frames per second
+
+Example output:
+```
+================================================================================
+EVALUATION RESULTS - NANO MODEL
+================================================================================
+
+📍 DRIVABLE AREA SEGMENTATION
+--------------------------------------------------------------------------------
+  Pixel Accuracy:  0.9524
+  IoU:             0.8765
+  mIoU:            0.9123
+
+🛣️  LANE LINE DETECTION
+--------------------------------------------------------------------------------
+  Line Accuracy:   0.8856
+  IoU:             0.7234
+  mIoU:            0.8456
+
+📊 OVERALL PERFORMANCE
+--------------------------------------------------------------------------------
+  Overall mIoU:    0.8790
+  Overall IoU:     0.8000
+
+⏱️  INFERENCE SPEED
+--------------------------------------------------------------------------------
+  Mean Time:       12.34 ms
+  Std Time:        1.23 ms
+  FPS:             81.04
+```
+
 ## File Structure
 
 ```
@@ -169,6 +236,7 @@ TwinLiteNet-MFA/
 ├── dataset.py        # Dataset and augmentation
 ├── utils.py          # Utilities and metrics
 ├── train.py          # Training script
+├── test.py           # Testing/evaluation script
 ├── config.yaml       # Configuration file
 └── README.md         # This file
 ```
@@ -258,6 +326,10 @@ This project is released under the MIT License.
 
 - BDD100K dataset: [https://bdd-data.berkeley.edu/](https://bdd-data.berkeley.edu/)
 - Inspired by TwinLiteNet and ESPNet architectures
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=dsabarinathan/TwinLiteNet-MFA&type=date&legend=top-left)](https://www.star-history.com/#dsabarinathan/TwinLiteNet-MFA&type=date&legend=top-left)
 
 ## Contact
 
