@@ -141,7 +141,7 @@ def load_model(checkpoint_path, model_type='nano', device='cuda'):
         device: Device to load on
         
     Returns:
-        Loaded model
+        Tuple of (model, model_info) where model_info contains parameters and FLOPs
     """
     print(f"\nLoading model...")
     print(f"  Architecture: {model_type}")
@@ -188,24 +188,77 @@ def load_model(checkpoint_path, model_type='nano', device='cuda'):
     num_params = count_parameters(model)
     print(f"  Parameters: {num_params:,} ({format_number_M(num_params)})")
     
-    return model
+    # Initialize model info dictionary
+    model_info = {
+        'parameters': num_params,
+        'parameters_str': format_number_M(num_params)
+    }
+    
+    # Calculate FLOPs
+    try:
+        from thop import profile, clever_format
+        from copy import deepcopy
+        
+        print(f"\nCalculating FLOPs...")
+        model_copy = deepcopy(model)
+        model_copy.eval()
+        
+        input_size = (1, 3, 384, 640)
+        if device == 'cuda' and torch.cuda.is_available():
+            model_copy = model_copy.cuda()
+            input_tensor = torch.randn(input_size).cuda()
+        else:
+            input_tensor = torch.randn(input_size)
+        
+        flops, params = profile(model_copy, inputs=(input_tensor,), verbose=False)
+        flops_str, params_str = clever_format([flops, params], "%.3f")
+        
+        print(f"  FLOPs: {flops_str}")
+        print(f"  Parameters (thop): {params_str}")
+        
+        # Store in model_info
+        model_info['flops'] = flops_str
+        model_info['params_thop'] = params_str
+        
+        del model_copy
+        if device == 'cuda' and torch.cuda.is_available():
+            torch.cuda.empty_cache()
+            
+    except ImportError:
+        print(f"  Note: Install 'thop' for FLOPs calculation (pip install thop)")
+    except Exception as e:
+        print(f"  Warning: FLOPs calculation failed: {e}")
+    
+    return model, model_info
 
 
 # ============================================================================
 # PRINT RESULTS
 # ============================================================================
 
-def print_results(results, model_type):
+def print_results(results, model_type, model_info=None):
     """
     Print evaluation results in a formatted table
     
     Args:
         results: Dictionary containing metrics
         model_type: Model architecture name
+        model_info: Optional dictionary with model specs (params, flops)
     """
     print("\n" + "="*80)
     print(f"EVALUATION RESULTS - {model_type.upper()} MODEL")
     print("="*80)
+    
+    # Model Specifications (if available)
+    if model_info:
+        print("\n🔧 MODEL SPECIFICATIONS")
+        print("-" * 80)
+        if 'parameters' in model_info:
+            print(f"  Parameters:      {model_info['parameters']:,} ({model_info['parameters_str']})")
+        if 'flops' in model_info:
+            print(f"  FLOPs:           {model_info['flops']}")
+        if 'params_thop' in model_info:
+            print(f"  Parameters (thop): {model_info['params_thop']}")
     
     # Drivable Area Results
     print("\n📍 DRIVABLE AREA SEGMENTATION")
@@ -242,7 +295,7 @@ def print_results(results, model_type):
     print("\n" + "="*80)
 
 
-def save_results_to_file(results, model_type, output_path='test_results.txt'):
+def save_results_to_file(results, model_type, output_path='test_results.txt', model_info=None):
     """
     Save results to a text file
     
@@ -250,11 +303,23 @@ def save_results_to_file(results, model_type, output_path='test_results.txt'):
         results: Dictionary containing metrics
         model_type: Model architecture name
         output_path: Path to save results
+        model_info: Optional dictionary with model specs
     """
     with open(output_path, 'w') as f:
         f.write(f"TwinLiteNet-MFA Evaluation Results\n")
         f.write(f"{'='*80}\n\n")
         f.write(f"Model: {model_type}\n\n")
+        
+        # Model specifications
+        if model_info:
+            f.write(f"Model Specifications:\n")
+            if 'parameters' in model_info:
+                f.write(f"  Parameters: {model_info['parameters']:,} ({model_info['parameters_str']})\n")
+            if 'flops' in model_info:
+                f.write(f"  FLOPs: {model_info['flops']}\n")
+            if 'params_thop' in model_info:
+                f.write(f"  Parameters (thop): {model_info['params_thop']}\n")
+            f.write(f"\n")
         
         f.write(f"Drivable Area Segmentation:\n")
         da = results['drivable_area']
@@ -302,7 +367,7 @@ def test(args):
     device = 'cuda' if torch.cuda.is_available() and not args.cpu else 'cpu'
     
     # Load model
-    model = load_model(args.checkpoint, args.model, device)
+    model, model_info = load_model(args.checkpoint, args.model, device)
     
     # Create test configuration
     config = {
@@ -345,11 +410,11 @@ def test(args):
     results = evaluate_model(model, test_loader, device)
     
     # Print results
-    print_results(results, args.model)
+    print_results(results, args.model, model_info)
     
     # Save results
     if args.save_results:
-        save_results_to_file(results, args.model, args.output)
+        save_results_to_file(results, args.model, args.output, model_info)
     
     print("\n✓ Evaluation complete!")
 
