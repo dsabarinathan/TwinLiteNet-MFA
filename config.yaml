@@ -1,0 +1,93 @@
+# TwinLiteNet-MFA Configuration File
+
+# Model Configuration
+model:
+  architecture: nano  # Options: nano, small, medium, large
+
+# Dataset Configuration
+dataset:
+  root: ./bdd100k  # Path to BDD100K dataset root directory
+
+# Data Augmentation
+augmentation:
+  degrees: 10              # Rotation range (±degrees)
+  translate: 0.1           # Translation range (fraction of image size)
+  scale: 0.1               # Scaling range (±scale)
+  shear: 10                # Shear range (±degrees)
+  hgain: 0.015             # HSV-Hue gain
+  sgain: 0.7               # HSV-Saturation gain
+  vgain: 0.4               # HSV-Value gain
+  prob_perspective: 0.5    # Probability of applying perspective transform
+  prob_flip: 0.5           # Probability of horizontal flip
+  prob_hsv: 0.5            # Probability of HSV augmentation
+
+# Training Configuration
+training:
+  max_epochs: 100          # Maximum number of training epochs
+  batch_size: 16           # Batch size
+  learning_rate: 0.0005    # Initial learning rate
+  weight_decay: 0.0001     # Weight decay for AdamW optimizer
+  num_workers: 4           # Number of data loading workers (set to 2 for Windows)
+  use_ema: true            # Use Exponential Moving Average
+  save_dir: ./checkpoints  # Directory to save checkpoints
+  save_interval: 10        # Save checkpoint every N epochs
+  resume: ''               # Path to checkpoint to resume from (empty for fresh training)
+
+# Random Seed
+seed: 42
+
+# ============================================================================
+# Model Architecture Configurations
+# ============================================================================
+# 
+# nano:   Smallest model - Params: ~0.3M, Best for edge devices
+#         chanels: [8, 16, 24, 32], p: 2, q: 3
+# 
+# small:  Small model - Params: ~1.2M, Good balance for mobile
+#         chanels: [16, 24, 32, 64], p: 2, q: 3
+# 
+# medium: Medium model - Params: ~8M, Higher accuracy
+#         chanels: [32, 48, 96, 192], p: 5, q: 8
+# 
+# large:  Large model - Params: ~20M, Best accuracy
+#         chanels: [48, 64, 128, 256], p: 7, q: 10
+# 
+# ============================================================================
+
+# ============================================================================
+# Dataset Structure
+# ============================================================================
+# 
+# bdd100k/
+# ├── images/
+# │   ├── train/          # Training images
+# │   └── val/            # Validation images
+# ├── drivable_area_annotations/
+# │   ├── train/          # Drivable area masks (training)
+# │   └── val/            # Drivable area masks (validation)
+# └── lane_line_annotations/
+#     ├── train/          # Lane line masks (training)
+#     └── val/            # Lane line masks (validation)
+# 
+# ============================================================================
+
+# ============================================================================
+# Training Examples
+# ============================================================================
+# 
+# Basic training:
+#   python train.py --config config.yaml
+# 
+# Train with specific model:
+#   python train.py --config config.yaml --model small
+# 
+# Train with custom parameters:
+#   python train.py --config config.yaml --epochs 200 --batch-size 32 --lr 0.001
+# 
+# Resume training:
+#   python train.py --config config.yaml --resume checkpoints/checkpoint_best.pth
+# 
+# Train without EMA:
+#   python train.py --config config.yaml --no-ema
+# 
+# ============================================================================
